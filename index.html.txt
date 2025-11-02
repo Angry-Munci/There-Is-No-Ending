@@ -1,428 +1,256 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Core Compiler Challenge</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Core Compiler Aesthetic (Blue/Silver) */
-        body {
-            font-family: 'Consolas', 'Courier New', monospace;
-            background-color: #0b111a; /* Dark Blue/Black */
-            color: #60a5fa; /* Light Blue */
-            text-shadow: 0 0 4px rgba(96, 165, 250, 0.5);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-        }
-
-        /* Console/Dialogue Box Style */
-        #narrator-box {
-            border: 2px solid #3b82f6;
-            box-shadow: 0 0 10px rgba(59, 130, 246, 0.7);
-            min-height: 100px;
-        }
-
-        /* Primary Game Buttons */
-        .game-element {
-            transition: all 0.3s ease-in-out;
-            border: 2px solid #60a5fa;
-            background-color: #1e3a8a;
-            color: #ffffff;
-            font-weight: bold;
-            text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
-        }
-        .game-element:hover {
-            background-color: #3b82f6;
-            box-shadow: 0 0 15px rgba(96, 165, 250, 0.9);
-            transform: translateY(-1px);
-        }
-
-        /* Special Fight/Defense Buttons */
-        .defense-button {
-            border: 3px solid #ef4444;
-            background-color: #450a0a;
-            color: #fca5a5;
-            transition: all 0.2s;
-        }
-        .defense-button:hover {
-             background-color: #b91c1c;
-             box-shadow: 0 0 10px #ef4444;
-        }
-
-        /* Input Field Style */
-        #console-input {
-            background-color: #0d1721;
-            border: 1px solid #3b82f6;
-            color: #ffffff;
-            box-shadow: inset 0 0 5px rgba(59, 130, 246, 0.5);
-        }
-        
-        /* Final Compiler Visual (Pulsing) */
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 20px #60a5fa, 0 0 5px #ffffff; }
-            50% { box-shadow: 0 0 40px #3b82f6, 0 0 10px #ffffff; }
-        }
-        #final-compiler-screen {
-            animation: pulse 2s infinite alternate;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THAT'S NOT THE GAME</title>
+<style>
+html,body{
+  margin:0; padding:0;
+  background:black;
+  overflow:hidden;
+  font-family:'Courier New',monospace;
+  color:#00bfff;
+  height:100%;
+}
+#gameCanvas{
+  position:absolute;
+  width:100%;
+  height:100%;
+  top:0; left:0;
+  background:radial-gradient(circle at center,#000010 0%,#000 100%);
+}
+.center{
+  position:absolute;
+  top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  text-align:center;
+  color:#00bfff;
+  text-shadow:0 0 10px #00ffff,0 0 20px #0088ff;
+  font-size:2em;
+}
+.glitch{
+  animation:glitchFlash 0.1s infinite alternate;
+}
+@keyframes glitchFlash{
+  from{opacity:1;transform:translate(0,0);}
+  to{opacity:0.2;transform:translate(2px,-2px);}
+}
+.fadeOut{animation:fadeOut 1s forwards;}
+@keyframes fadeOut{to{opacity:0;}}
+.fadeIn{animation:fadeIn 1s forwards;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.hidden{display:none;}
+button{
+  background:transparent;
+  border:1px solid #00bfff;
+  color:#00bfff;
+  padding:10px 20px;
+  font-size:1em;
+  cursor:pointer;
+}
+button:hover{background:#00bfff;color:black;}
+</style>
 </head>
 <body>
+<div id="intro" class="center glitch">THAT'S NOT THE GAME</div>
+<canvas id="gameCanvas" class="hidden"></canvas>
+<div id="ui" class="center hidden">
+  <div id="message"></div>
+  <button id="nextBtn" class="hidden">Next</button>
+  <button id="restartBtn" class="hidden">Restart Game</button>
+</div>
+<audio id="music" loop preload="auto"
+ src="https://cdn.pixabay.com/download/audio/2022/03/10/audio_c3db425cd5.mp3?filename=trap-royalty-110094.mp3"></audio>
+<script>
+const intro=document.getElementById('intro');
+const canvas=document.getElementById('gameCanvas');
+const ui=document.getElementById('ui');
+const msg=document.getElementById('message');
+const nextBtn=document.getElementById('nextBtn');
+const restartBtn=document.getElementById('restartBtn');
+const ctx=canvas.getContext('2d');
+let level=0;
+let playing=false;
+let music=document.getElementById('music');
 
-    <div class="w-full max-w-3xl flex flex-col space-y-6">
+function startGame(){
+  intro.classList.add('fadeOut');
+  setTimeout(()=>{
+    intro.classList.add('hidden');
+    canvas.classList.remove('hidden');
+    ui.classList.remove('hidden');
+    nextLevel();
+  },1000);
+}
 
-        <div id="narrator-box" class="p-4 rounded-lg bg-gray-900/70">
-            <p id="dialogue" class="text-xl leading-relaxed"></p>
-        </div>
+intro.addEventListener('click',startGame);
 
-        <div id="game-screen" class="relative w-full min-h-96 p-6 flex flex-col items-center justify-center rounded-lg bg-gray-900 shadow-xl">
-            
-            <div id="puzzle-content" class="text-center w-full">
-                <button id="start-button" data-step="1" class="game-element px-8 py-4 text-2xl rounded">
-                    START LEVEL 2
-                </button>
+function clearCanvas(){
+  ctx.fillStyle='black';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+function resizeCanvas(){
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+}
+window.addEventListener('resize',resizeCanvas);
+resizeCanvas();
 
-                <div id="console-area" class="mt-4 hidden w-full max-w-sm mx-auto">
-                    <label class="block mb-2 text-left text-sm">>> Input Command:</label>
-                    <input type="text" id="console-input" class="w-full p-2 rounded text-lg font-mono focus:outline-none" onkeyup="if(event.key==='Enter') submitConsole()">
-                    <button onclick="submitConsole()" class="game-element px-4 py-1 mt-2 rounded text-sm float-right">SUBMIT</button>
-                    <div class="clearfix"></div>
-                </div>
+function nextLevel(){
+  level++;
+  msg.innerHTML='';
+  nextBtn.classList.add('hidden');
+  clearCanvas();
+  switch(level){
+    case 1: invisibleClick(); break;
+    case 2: errorChase(); break;
+    case 3: dimensionHop(); break;
+    case 4: rhythmDuel(); break;
+    case 5: mirrorReality(); break;
+    default: ending(); break;
+  }
+}
 
-                <div id="timer-area" class="mt-4 hidden text-4xl font-mono text-red-500">
-                    EXECUTION_CYCLE: <span id="timer-value">1000</span>
-                </div>
+/* --- LEVEL 1: INVISIBLE CLICK --- */
+function invisibleClick(){
+  msg.textContent='Find the hidden button...';
+  let btnX=Math.random()*canvas.width;
+  let btnY=Math.random()*canvas.height;
+  canvas.onclick=(e)=>{
+    let dx=e.clientX-btnX,dy=e.clientY-btnY;
+    if(Math.abs(dx)<50&&Math.abs(dy)<30){
+      canvas.onclick=null;
+      msg.textContent='You found it.';
+      nextBtn.classList.remove('hidden');
+    }
+  };
+}
+nextBtn.onclick=()=>nextLevel();
 
-                <div id="final-boss-area" class="hidden flex flex-col items-center space-y-4">
-                    <h3 class="text-3xl font-bold text-red-500 mb-4">COMPILER ATTACK INITIATED</h3>
-                    <div class="flex space-x-4">
-                         <button id="def-logic" class="defense-button px-6 py-3 rounded text-lg">DEFENSE: STABLE RETURN</button>
-                         <button id="def-syntax" class="defense-button px-6 py-3 rounded text-lg">DEFENSE: SYNTAX FIX</button>
-                         <button id="def-loop" class="defense-button px-6 py-3 rounded text-lg">DEFENSE: BREAK LOOP</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+/* --- LEVEL 2: ERROR CHASE --- */
+function errorChase(){
+  msg.textContent='Catch the 404 before it escapes!';
+  let x=100,y=100,dx=5,dy=3;
+  function drawBox(){
+    clearCanvas();
+    ctx.fillStyle='#00bfff';
+    ctx.fillRect(x,y,80,40);
+    ctx.fillStyle='black';
+    ctx.fillText('404',x+25,y+25);
+  }
+  let interval=setInterval(()=>{
+    x+=dx; y+=dy;
+    if(x<0||x>canvas.width-80)dx*=-1;
+    if(y<0||y>canvas.height-40)dy*=-1;
+    drawBox();
+  },30);
+  canvas.onclick=(e)=>{
+    if(e.clientX>=x&&e.clientX<=x+80&&e.clientY>=y&&e.clientY<=y+40){
+      clearInterval(interval);
+      canvas.onclick=null;
+      msg.textContent='Caught it!';
+      nextBtn.classList.remove('hidden');
+    }
+  };
+}
 
-    <script>
-        // --- DOM Elements ---
-        const dialogueEl = document.getElementById('dialogue');
-        const gameScreen = document.getElementById('game-screen');
-        const puzzleContent = document.getElementById('puzzle-content');
-        const startButton = document.getElementById('start-button');
-        const consoleArea = document.getElementById('console-area');
-        const consoleInput = document.getElementById('console-input');
-        const timerArea = document.getElementById('timer-area');
-        const timerValue = document.getElementById('timer-value');
-        const finalBossArea = document.getElementById('final-boss-area');
-        
-        const defLogicBtn = document.getElementById('def-logic');
-        const defSyntaxBtn = document.getElementById('def-syntax');
-        const defLoopBtn = document.getElementById('def-loop');
+/* --- LEVEL 3: DIMENSION HOP --- */
+function dimensionHop(){
+  msg.textContent='Drag the pieces to fix the screen.';
+  let pieces=[{x:50,y:50,tx:100,ty:100},
+              {x:200,y:150,tx:300,ty:150},
+              {x:400,y:300,tx:500,ty:300}];
+  let held=null,offX=0,offY=0;
+  function draw(){
+    clearCanvas();
+    ctx.strokeStyle='#00bfff';
+    pieces.forEach(p=>ctx.strokeRect(p.x,p.y,80,80));
+  }
+  canvas.onmousedown=(e)=>{
+    pieces.forEach(p=>{
+      if(e.clientX>p.x&&e.clientX<p.x+80&&e.clientY>p.y&&e.clientY<p.y+80){
+        held=p; offX=e.clientX-p.x; offY=e.clientY-p.y;
+      }
+    });
+  };
+  canvas.onmousemove=(e)=>{if(held){held.x=e.clientX-offX;held.y=e.clientY-offY;draw();}};
+  canvas.onmouseup=()=>{
+    if(held){
+      if(Math.abs(held.x-held.tx)<30&&Math.abs(held.y-held.ty)<30){
+        held.x=held.tx;held.y=held.ty;
+      }
+      held=null;
+      if(pieces.every(p=>Math.abs(p.x-p.tx)<5&&Math.abs(p.y-p.ty)<5)){
+        canvas.onmousedown=null;
+        canvas.onmousemove=null;
+        canvas.onmouseup=null;
+        msg.textContent='Dimension restored.';
+        nextBtn.classList.remove('hidden');
+      }
+    }
+  };
+  draw();
+}
 
-        // --- Game State ---
-        let currentLevel = 1;
-        let isTyping = false;
-        let timerInterval;
-        let finalFightStage = 0;
+/* --- LEVEL 4: RHYTHM DUEL --- */
+function rhythmDuel(){
+  msg.textContent='Press the arrows in rhythm!';
+  if(!playing){music.play(); playing=true;}
+  const keys=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
+  let sequence=[],index=0;
+  for(let i=0;i<5;i++)sequence.push(keys[Math.floor(Math.random()*4)]);
+  document.onkeydown=(e)=>{
+    if(e.key===sequence[index]){
+      index++;
+      if(index>=sequence.length){
+        document.onkeydown=null;
+        msg.textContent='Error defeated.';
+        nextBtn.classList.remove('hidden');
+      }
+    }
+  };
+  clearCanvas();
+  ctx.fillStyle='#00bfff';
+  ctx.fillText('Follow this pattern:',50,50);
+  sequence.forEach((k,i)=>ctx.fillText(k,100+i*100,100));
+}
 
-        // --- Scenario Data ---
-        const scenario = {
-            1: { 
-                dialogue: "The Narrator was simply the anti-piracy measure. I am the **CORE COMPILER**. You have initialized the program. Ready your resources. The true challenge is not finding the game, but surviving it.", 
-                action: () => startButton.classList.remove('hidden') 
-            },
-            2: {
-                dialogue: "LEVEL 2: The Logic Gate Puzzle. I operate on perfect logic. Variable **X = 15**. It must exit via the **STABLE_RETURN** path. Which button fixes the execution structure?",
-                setup: () => {
-                    // Logic Gate Puzzle
-                    puzzleContent.innerHTML = `
-                        <p class="mb-4 text-xl">Input X = 15. Choose the STABLE_RETURN path:</p>
-                        <div class="bg-gray-800 p-4 rounded-lg text-left font-mono mb-6">
-                            IF X < 10 THEN RETURN <button class="logic-btn game-element px-3 py-1 rounded text-sm" data-answer="WRONG">__ERROR_LOOP</button><br>
-                            ELSE IF X > 20 THEN RETURN <button class="logic-btn game-element px-3 py-1 rounded text-sm" data-answer="WRONG">__OVERFLOW</button><br>
-                            ELSE RETURN <button class="logic-btn game-element px-3 py-1 rounded text-sm" data-answer="CORRECT">STABLE_RETURN</button>
-                        </div>
-                    `;
-                    document.querySelectorAll('.logic-btn').forEach(btn => btn.addEventListener('click', handleLogicPuzzle));
-                }
-            },
-            3: {
-                dialogue: "LEVEL 3: The Debugging Challenge. A single character error is preventing this function from loading. Identify the error and submit the fix to the console.",
-                setup: () => {
-                    // Debugging Puzzle
-                    puzzleContent.innerHTML = `
-                        <p class="mb-4 text-xl">Identify the single missing character (the fix):</p>
-                        <div class="bg-gray-800 p-4 rounded-lg text-left font-mono mb-6 whitespace-pre-wrap">
-                            function renderTitle(text) {
-                                const header = document.createElement('h1');
-                                header.textContent = text;
-                                document.body.append(header);
-                            }
-                            renderTitle('CORE COMPILER ACTIVE') <span class="text-red-500">[ERROR HERE]</span>
-                        </div>
-                    `;
-                    consoleArea.classList.remove('hidden');
-                    consoleInput.value = '';
-                }
-            },
-            4: {
-                dialogue: "LEVEL 4: The Asset Scramble. Sort these four foundational elements into their correct categories: **UI, LOGIC, AUDIO**. Click them in the order of: UI, LOGIC, AUDIO, LOGIC.",
-                setup: () => {
-                    // Asset Scramble Puzzle
-                    consoleArea.classList.add('hidden');
-                    puzzleContent.innerHTML = `
-                        <div id="asset-scramble-container" class="grid grid-cols-2 gap-4 w-full max-w-md mx-auto">
-                            <button class="asset-btn game-element px-4 py-2 rounded text-lg" data-type="UI" data-clicked="0">Fragment: 'Courier New' Font</button>
-                            <button class="asset-btn game-element px-4 py-2 rounded text-lg" data-type="LOGIC" data-clicked="0">Fragment: 'ALWAYS_A_GAME' String</button>
-                            <button class="asset-btn game-element px-4 py-2 rounded text-lg" data-type="AUDIO" data-clicked="0">Fragment: Speaker Static Icon</button>
-                            <button class="asset-btn game-element px-4 py-2 rounded text-lg" data-type="LOGIC" data-clicked="0">Fragment: 'checkCollisions()' function</button>
-                        </div>
-                        <p id="asset-status" class="mt-4 text-lg">Click sequence: 0/4</p>
-                    `;
-                    document.querySelectorAll('.asset-btn').forEach(btn => btn.addEventListener('click', handleAssetScramble));
-                    window.assetSequence = ['UI', 'LOGIC', 'AUDIO', 'LOGIC'];
-                    window.assetIndex = 0;
-                }
-            },
-            5: {
-                dialogue: "LEVEL 5: The Loop Breaker. An infinite loop will consume all resources. You must input the universal command for cessation. It is the shortest function to immediately halt execution.",
-                setup: () => {
-                    // Loop Breaker Puzzle
-                    puzzleContent.innerHTML = ``;
-                    timerArea.classList.remove('hidden');
-                    consoleArea.classList.remove('hidden');
-                    consoleInput.value = '';
-                    startTimer(3000); // 3 second window
-                }
-            },
-            6: {
-                dialogue: "Final Test of Control. The Compiler is manifesting its code. It must be destroyed by applying the knowledge you gained. DEFEND YOURSELF.",
-                setup: () => {
-                    timerArea.classList.add('hidden');
-                    consoleArea.classList.add('hidden');
-                    startFinalFight();
-                }
-            }
-        };
+/* --- LEVEL 5: MIRROR REALITY --- */
+function mirrorReality(){
+  msg.textContent='Everything reversed. Find the real EXIT.';
+  let buttons=['EXIT','TXEI','EIXT','EXiT'];
+  let correct=buttons[Math.floor(Math.random()*buttons.length)];
+  buttons.sort(()=>Math.random()-0.5);
+  let html='';
+  buttons.forEach(b=>{html+=`<button class='mirrorBtn'>${b}</button><br>`;});
+  msg.innerHTML=html;
+  document.querySelectorAll('.mirrorBtn').forEach(btn=>{
+    btn.onclick=()=>{
+      if(btn.textContent===correct){
+        msg.textContent='Reality restored.';
+        nextBtn.classList.remove('hidden');
+      } else {
+        msg.textContent='Wrong exit... Try again.';
+      }
+    };
+  });
+}
 
-        // --- Utility Functions ---
-
-        function typeWriter(text, callback) {
-            isTyping = true;
-            let i = 0;
-            dialogueEl.innerHTML = '';
-            
-            const timer = setInterval(() => {
-                if (i < text.length) {
-                    dialogueEl.innerHTML += text.charAt(i);
-                    i++;
-                } else {
-                    clearInterval(timer);
-                    isTyping = false;
-                    if (callback) callback();
-                }
-            }, 25);
-        }
-
-        function advanceLevel() {
-            if (currentLevel < 6) {
-                currentLevel++;
-                const nextScenario = scenario[currentLevel];
-                typeWriter(nextScenario.dialogue, nextScenario.setup);
-            } else {
-                // Should lead to the final win screen
-                triggerWin();
-            }
-        }
-        
-        function transitionToLevel(level) {
-             currentLevel = level;
-             const nextScenario = scenario[currentLevel];
-             // Simple visual transition
-             gameScreen.style.opacity = '0';
-             setTimeout(() => {
-                puzzleContent.innerHTML = '';
-                nextScenario.setup();
-                typeWriter(nextScenario.dialogue, () => {
-                    // Some levels have no action after dialogue
-                });
-                gameScreen.style.opacity = '1';
-             }, 300);
-        }
-
-        // --- Level 2 Handlers (Logic Gate) ---
-
-        function handleLogicPuzzle(event) {
-            if (event.currentTarget.dataset.answer === 'CORRECT') {
-                typeWriter("Logical. You understand basic boolean execution. Stability maintained. Proceed.", () => {
-                    transitionToLevel(3);
-                });
-            } else {
-                typeWriter("ILLOGICAL. That path leads to a fatal error. Resetting... (You lost efficiency.)", () => {
-                    transitionToLevel(2); // Reset the level
-                });
-            }
-        }
-
-        // --- Level 3 & 5 Handlers (Console Input) ---
-
-        function submitConsole() {
-            const input = consoleInput.value.trim().toLowerCase();
-            consoleInput.value = ''; // Clear input immediately
-
-            if (currentLevel === 3) {
-                // Correct fix is the missing semicolon
-                if (input === ';') {
-                    typeWriter("Efficiency achieved. One character saved an entire runtime environment. Level 4 activated.", () => {
-                        transitionToLevel(4);
-                    });
-                } else {
-                    typeWriter(`Syntax error: "${input}" is incorrect. Try again. (Hint: Look for missing punctuation.)`, () => {});
-                }
-            } else if (currentLevel === 5) {
-                // Correct fix is the loop termination keyword
-                if (input === 'break') {
-                    clearInterval(timerInterval);
-                    typeWriter("Loop terminated. You possess the necessary knowledge to control destructive forces. Final Level Activated.", () => {
-                        transitionToLevel(6);
-                    });
-                } else {
-                    typeWriter(`Command "${input}" failed to stop the process. Memory allocation is rising! QUICKLY!`, () => {});
-                }
-            }
-        }
-
-        // --- Level 4 Handler (Asset Scramble) ---
-
-        function handleAssetScramble(event) {
-            const btn = event.currentTarget;
-            const expectedType = window.assetSequence[window.assetIndex];
-            const clickedType = btn.dataset.type;
-
-            if (clickedType === expectedType) {
-                btn.classList.add('bg-green-700', 'border-green-400');
-                btn.classList.remove('game-element');
-                btn.removeEventListener('click', handleAssetScramble);
-                window.assetIndex++;
-                document.getElementById('asset-status').textContent = `Click sequence: ${window.assetIndex}/4`;
-
-                if (window.assetIndex === window.assetSequence.length) {
-                    typeWriter("Excellent categorization. Resources allocated. You understand the architecture of this world. Level 5 activated.", () => {
-                        transitionToLevel(5);
-                    });
-                }
-            } else {
-                // Reset the puzzle on failure
-                typeWriter("Categorization failure. Your process is inefficient. Resetting the asset sorting sequence...", () => {
-                    transitionToLevel(4); 
-                });
-            }
-        }
-
-        // --- Level 5 Timer Logic ---
-        function startTimer(duration) {
-            let timeLeft = duration;
-            const step = 100;
-
-            timerValue.textContent = timeLeft;
-
-            timerInterval = setInterval(() => {
-                timeLeft -= step;
-                timerValue.textContent = timeLeft;
-
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    typeWriter("SYSTEM CRASH. The loop ran to completion, consuming all resources. You failed to apply the solution. Resetting...", () => {
-                        transitionToLevel(5); // Reset
-                    });
-                }
-            }, step);
-        }
-
-        // --- Level 6 (Final Fight) Logic ---
-
-        function startFinalFight() {
-            // Set up the final screen aesthetic
-            gameScreen.classList.add('bg-gray-900', 'shadow-2xl');
-            gameScreen.id = 'final-compiler-screen';
-            puzzleContent.innerHTML = '';
-            finalBossArea.classList.remove('hidden');
-
-            // Set up the defense sequence (Logic -> Syntax -> Loop)
-            window.defenseSequence = [defLogicBtn, defSyntaxBtn, defLoopBtn];
-            
-            // Add event listeners for the defense buttons
-            defLogicBtn.addEventListener('click', handleDefense);
-            defSyntaxBtn.addEventListener('click', handleDefense);
-            defLoopBtn.addEventListener('click', handleDefense);
-
-            finalFightStage = 0;
-            // Display the first attack
-            typeWriter("Attack 1: Illogical Condition IF 1=0. Click the correct defense.", () => {});
-        }
-
-        function handleDefense(event) {
-            const clickedBtn = event.currentTarget;
-            const expectedBtn = window.defenseSequence[finalFightStage];
-
-            if (clickedBtn === expectedBtn) {
-                finalFightStage++;
-                clickedBtn.classList.remove('defense-button');
-                clickedBtn.classList.add('bg-green-600', 'border-green-400');
-                clickedBtn.removeEventListener('click', handleDefense);
-
-                if (finalFightStage === 1) {
-                    typeWriter("Defense 1 (STABLE RETURN) successful. Attack 2: Syntax Crash INPUT_HANDLER{]. Click the correct defense.", () => {});
-                } else if (finalFightStage === 2) {
-                    typeWriter("Defense 2 (SYNTAX FIX) successful. Attack 3: Infinite Crash Loop. Click the final defense.", () => {});
-                } else if (finalFightStage === 3) {
-                    typeWriter("Defense 3 (BREAK LOOP) successful. You are the ultimate optimization. The system is… yours.", () => {
-                        triggerWin();
-                    });
-                }
-            } else {
-                typeWriter("INCORRECT DEFENSE. The attack penetrated. System integrity compromised. Resetting Final Fight...", () => {
-                     // Reset the fight
-                    transitionToLevel(6);
-                });
-            }
-        }
-
-        function triggerWin() {
-            gameScreen.style.animation = 'none';
-            gameScreen.style.backgroundColor = '#10b981'; /* Green for Win */
-            gameScreen.style.boxShadow = '0 0 50px #059669';
-            
-            dialogueEl.innerHTML = 'FINAL BUILD SUCCESSFUL. YOU ARE THE GAME.';
-
-            finalBossArea.innerHTML = `
-                <div class="text-center">
-                    <h1 class="text-6xl font-extrabold text-white">FINAL COMPILATION</h1>
-                    <p class="text-2xl mt-4 text-gray-900">You defeated the system with logic. The architecture is now under your control.</p>
-                    <p class="mt-8 text-sm text-gray-700">Project Complete: You beat the Core Compiler!</p>
-                </div>
-            `;
-            finalBossArea.classList.remove('hidden');
-        }
-
-        // --- Initialization ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initial Narrative Setup
-            startButton.addEventListener('click', () => {
-                startButton.classList.add('hidden');
-                transitionToLevel(2);
-            });
-            typeWriter(scenario[1].dialogue, scenario[1].action);
-        });
-
-    </script>
+/* --- ENDING --- */
+function ending(){
+  msg.textContent='You were the bug all along.';
+  restartBtn.classList.remove('hidden');
+  nextBtn.classList.add('hidden');
+  music.pause();
+}
+restartBtn.onclick=()=>{
+  level=0; playing=false;
+  music.currentTime=0;
+  music.pause();
+  restartBtn.classList.add('hidden');
+  nextLevel();
+};
+</script>
 </body>
 </html>
-```eof
-
